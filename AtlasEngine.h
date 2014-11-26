@@ -51,12 +51,15 @@ protected:
 	//database with routes: <routenumber, <nodeid,parentinfo struct>>
 	std::map<int, std::map<std::string, ParentInfo>> _Routes;
 
-private:
 	//map of all nodes in this world, <id,AtlasNodePointer>
 	std::map<std::string, AtlasNode<T1,T2>*> _Nodes;
 
+private:
 	//the lua script eninge to be used
 	LuaScript* _Engine;
+
+	//current time in ticks
+	int _Time = 0;
 
 public:
 	//constructor and destructor
@@ -64,8 +67,8 @@ public:
 	AtlasWorld(std::string worldname);
 	~AtlasWorld();
 
-	//Advances the whole world with one time tick
-	void Tick();
+	//Advances the whole world with numsteps ticks
+	void Tick(int numsteps);
 
 	//Saves world map to file
 	void SaveMap(std::string worldname);
@@ -85,11 +88,16 @@ public:
 //T1: type for payload node, T2 type for payload agent
 template<typename T1, typename T2> class AtlasNode
 {
+
+	friend AtlasWorld<T1,T2> ;
+
+protected:
+	//list of agents who are travelling from this node to parent(s)
+	std::list<AtlasAgent<T2>*> _Agents;
+
 private:
 	//own ID
 	std::string _ID;
-	//list of agents who are travelling from this node to parent(s)
-	std::list<AtlasAgent<T2>*> _Agents;
 	//the payload of this node
 	T1* _Payload = nullptr;
 	//payload id
@@ -135,6 +143,8 @@ private:
 	std::string _Destination;
 	T* _Payload = nullptr;
 	std::string _PayloadID;
+	//if this is true than this timetick has already been processed this tick and should be ignored for rest of tick
+	bool _processed = false;
 
 public:
 	AtlasAgent(std::string ID, int RouteNumber, std::string Destination);
@@ -156,6 +166,29 @@ public:
 	//adds payload data
 	void AddPayload(T* p);
 
+	//returns the destination
+	std::string Destination();
+
+	//resets the traveltime for when a node in route has been reached
+	void ReachedNode();
+
+	//returns the route number
+	int RouteNumber();
+
+	//returns time travelled
+	int TimeTravelled();
+
+	//called when arrived at destination
+	int DestinationArrived();
+
+	//Set new route number
+	void SetRoute(int newroute);
+
+	//sets the processed to false
+	void ResetProcessed();
+
+	//returns the proccessed state
+	bool IsProcessed();
 };
 
 //Error class that is used to throw and display errors
@@ -276,17 +309,41 @@ template<typename T1, typename T2> AtlasWorld<T1, T2>::AtlasWorld(std::string wo
 
 template<typename T1, typename T2> AtlasWorld<T1, T2>::~AtlasWorld()
 {
-
+	for (std::map<std::string, AtlasNode<T1, T2>*>::iterator it = _Nodes.begin(); it != _Nodes.end(); it++)
+	{
+		delete it->second;
+	}
 }
 
-template<typename T1, typename T2> void AtlasWorld<T1, T2>::Tick()
+template<typename T1, typename T2> void AtlasWorld<T1, T2>::Tick(int numsteps)
 {
-
+	for (int i = 0; i < numsteps; i++)
+	{
+		//reset all processsed flags
+		for (std::map<std::string, AtlasNode<T1, T2>*>::iterator it = _Nodes.begin(); it != _Nodes.end(); it++)
+		{
+			for (auto it2 = it->second->_Agents.begin(); it2 != it->second->_Agents.end(); it2++)
+			{
+				(*it2)->ResetProcessed();
+			}
+		}
+		//increment and report the total time passed
+		_Time++;
+		std::cout << "Tick: " << _Time << std::endl;
+		//iterate through all nodes and invoke the tick on them
+		for (std::map<std::string, AtlasNode<T1, T2>*>::iterator it = _Nodes.begin(); it != _Nodes.end(); it++)
+		{
+			it->second->Tick(this);
+		}
+		
+	}
 }
 
 
 template<typename T1, typename T2> void AtlasWorld<T1, T2>::SaveMap(std::string worldname)
 {
+	//save the world object to lua file
+
 	lua_State* L = _Engine->getState();
 
 	luabridge::LuaRef Save = luabridge::newTable(L);
@@ -400,12 +457,93 @@ template<typename T1, typename T2> AtlasNode<T1, T2>::AtlasNode(luabridge::LuaRe
 
 template<typename T1, typename T2> AtlasNode<T1, T2>::~AtlasNode()
 {
-
+	for (std::list<AtlasAgent<T2>*>::iterator it = _Agents.begin(); it != _Agents.end(); it++)
+	{
+		delete (*it);
+	}
 }
 
 template<typename T1, typename T2> void AtlasNode<T1, T2>::Tick(AtlasWorld<T1, T2>* ThisWorld)
 {
+	//call the tick hook in the payload
+	_Payload->AtlasTick();
+	//iterate through the agents list
+	std::list<AtlasAgent<T2>*>::iterator it = _Agents.begin();
+	while (it != _Agents.end())
+	{
+		//check if this agent has already been processed this tick
+		if ((*it)->IsProcessed())
+		{
+			it++;
+			continue;
+		}
+		//call the tick hook in the agent payload
+		(*it)->Tick();
+		//retrieve the current route this agent is travelling on
+		auto Route = ThisWorld->_Routes[(*it)->RouteNumber()];
+		//if this node has no parent in the route than the route is invalid and throw error
+		if (Route.find(_ID) == Route.end())
+		{
+			throw new AtlasError(3, std::to_string((*it)->RouteNumber()));
+		}
+		else
+		{
+			//get the parentinfo of current node
+			ParentInfo PI = Route[_ID];
+			//check if full distance has been travelled to parent node
+			if (PI.travelcost == (*it)->TimeTravelled())
+			{
+				//reset the agent for reaching a node
+				(*it)->ReachedNode();
+				//check if final destination is reached
+				if (PI.ParentID == (*it)->Destination())
+				{
+					//ask for new route by calling atlas hook AtlasArrived
+					int newRoute = (*it)->DestinationArrived();
+					//if there is no new route destroy the agent
+					if (newRoute == 0)
+					{
+						delete (*it);
+					}
+					else
+					{
+						//set the new route
+						(*it)->SetRoute(newRoute);
+						//retrieve this new route
+						Route = ThisWorld->_Routes[newRoute];
+						//check if route is valid for current node
+						if (Route.find(_ID) == Route.end())
+						{
+							throw new AtlasError(3, std::to_string(newRoute));
+						}
+						else
+						{
+							//retrieve parentinfo and move the agent to its new node
+							PI = Route[_ID];
+							AtlasNode<T1, T2>* newowner = ThisWorld->_Nodes[PI.ParentID];
+							newowner->AttachAgent(*it);
+						}
+						PI = Route[_ID];
 
+					}
+					//remove current agent from this node
+					_Agents.erase(it++);
+				}
+				else
+				{
+					//retrieve parentinfo and move the agent to its new node
+					AtlasNode<T1, T2>* newowner = ThisWorld->_Nodes[PI.ParentID];
+					newowner->AttachAgent(*it);
+					_Agents.erase(it++);
+				}
+			}
+			else
+			{
+				//move the iterator forward
+				it++;
+			}
+		}
+	}
 }
 
 
@@ -506,6 +644,7 @@ template<typename T> void AtlasAgent<T>::Tick()
 	_TotalTime++;
 	_TravelTime++;
 	_Payload->AtlasTick();
+	_processed = true;
 }
 
 template<typename T> luabridge::LuaRef AtlasAgent<T>::Save(lua_State* L)
@@ -547,6 +686,46 @@ template<typename T> std::string AtlasAgent<T>::ID()
 	return _ID;
 }
 
+template<typename T> std::string AtlasAgent<T>::Destination()
+{
+	return _Destination;
+}
+
+template<typename T> void AtlasAgent<T>::ReachedNode()
+{
+	_TravelTime = 0;
+}
+
+template<typename T> int AtlasAgent<T>::RouteNumber()
+{
+	return _RouteNumber;
+}
+
+template<typename T> int AtlasAgent<T>::TimeTravelled()
+{
+	return _TravelTime;
+}
+
+template<typename T> int AtlasAgent<T>::DestinationArrived()
+{
+	return _Payload->AtlasArrived();
+}
+
+template<typename T> void AtlasAgent<T>::SetRoute(int newroute)
+{
+	_RouteNumber = newroute;
+}
+
+template<typename T> void AtlasAgent<T>::ResetProcessed()
+{
+	_processed = false;
+}
+
+template<typename T> bool AtlasAgent<T>::IsProcessed()
+{
+	return _processed;
+}
+
 // AtlasErrorclass functions:
 
 AtlasError::AtlasError(int type, std::string c_message)
@@ -574,6 +753,9 @@ std::string AtlasError::message()
 		break;
 	case 2://parsing error with luaref
 		ss << "Parsing error because of luaref exception: " << _custom;
+		break;
+	case 3://invalid route
+		ss << "Invalid route with number: " << _custom;
 		break;
 	}
 

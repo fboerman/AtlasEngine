@@ -15,7 +15,7 @@ Node::~Node()
 
 void Node::AtlasTick()
 {
-
+	//std::cout << "Node " << _ID << " Tick" << std::endl;
 }
 
 std::string Node::ID()
@@ -35,11 +35,12 @@ Agent::~Agent()
 
 void Agent::AtlasTick()
 {
-
+	//std::cout << "Agent " << _ID << " Tick" << std::endl;
 }
 
 int Agent::AtlasArrived()
 {
+	std::cout << "Agent " << _ID << " arrived at destination" << std::endl;
 	return 0;
 }
 
@@ -68,8 +69,8 @@ int main()
 	Agent* A1 = new Agent("Agent1");
 	Agent* A2 = new Agent("Agent2");
 
-	AtlasAgent<Agent>* AA1 = new AtlasAgent<Agent>("AAgent1",1,"Anode3");
-	AtlasAgent<Agent>* AA2 = new AtlasAgent<Agent>("AAgent2", 2, "Anode2");
+	AtlasAgent<Agent>* AA1 = new AtlasAgent<Agent>("AAgent1",1,"ANode3");
+	AtlasAgent<Agent>* AA2 = new AtlasAgent<Agent>("AAgent2", 2, "ANode2");
 
 	AA1->AddPayload(A1);
 	AA2->AddPayload(A2);
@@ -84,17 +85,17 @@ int main()
 	std::vector<std::vector<std::string>> r1 = std::vector<std::vector<std::string>>();
 	std::vector<std::vector<std::string>> r2 = std::vector<std::vector<std::string>>();
 
-	std::vector<std::string> itm = { "ANode1", "0" };
+	std::vector<std::string> itm = { "ANode1", "5" };
 	r1.push_back(itm);
 	itm[0] = "ANode2";
-	itm[1] = "20";
+	itm[1] = "2";
 	r1.push_back(itm);
 	itm[0] = "ANode3";
-	itm[1] = "7";
+	itm[1] = "5";
 	r1.push_back(itm);
 
 	itm[0] = "ANode1";
-	itm[1] = "0";
+	itm[1] = "5";
 	r2.push_back(itm);
 	itm[0] = "ANode3";
 	itm[1] = "10";
@@ -106,8 +107,16 @@ int main()
 	MyWorld->AddRoute(1, r1);
 	MyWorld->AddRoute(2, r2);
 
-	MyWorld->SaveMap("TestWorld1.lua");
+	MyWorld->Tick(5);
+	MyWorld->SaveMap("Dump1.lua");
+	MyWorld->Tick(5);
+	MyWorld->SaveMap("Dump2.lua");
+	MyWorld->Tick(5);
+	MyWorld->SaveMap("Dump3.lua");
+	MyWorld->Tick(5);
+	MyWorld->SaveMap("Dump4.lua");
 
+	delete MyWorld;
 	//AtlasWorld<Node, Agent>* MyWorld = new AtlasWorld<Node,Agent>("TestWorld1.lua");
 
 	return 0;

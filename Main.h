@@ -4,26 +4,38 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include<string>
-#include<list>
-#include<map>
-#include<iostream>
-#include<ctime>
+#include <math.h>
+#include <string>
+#include <list>
+#include <map>
+#include <iostream>
+#include <ctime>
 #include "AtlasEngine.h"
+#include "DrawTools.h"
 
 class Node;
 class Agent;
+
+//global variables
+std::list<item*> DrawList = std::list<item*>();
+AtlasWorld<Node, Agent>* MyWorld;
+
+//classes
 
 class Node
 {
 private:
 	std::string _ID;
+	circle* _image;
+	int _value = 1;
 
 public:
-	Node(std::string id);
+	Node(std::string id, circle* image);
 	~Node();
 
-	void AtlasTick();
+	void AtlasTick(const float newPosition[2]);
+
+	void AtlasArrivedAgent(std::string agentID);
 
 	std::string ID();
 	
@@ -33,18 +45,34 @@ class Agent
 {
 private:
 	std::string _ID;
+	arrow* _image;
+	bool routedone = false;
 
 public:
-	Agent(std::string id);
+	Agent(std::string id, arrow* image);
 	~Agent();
 
-	void AtlasTick();
+	void AtlasTick(const float newAngle, const float newPosition[2]);
 	
 	int AtlasArrived();
 
 	std::string ID();
 };
 
-int main();
+//functions
+
+int main(int argc, char* argv[]);
+
+void init();
+
+//glut callbacks
+
+void reshape(int w, int h);
+
+void display(void);
+
+void Time_Tick(int id);
+
+void keypressed(unsigned char key, int x, int y);
 
 #endif

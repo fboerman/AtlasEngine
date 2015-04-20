@@ -7,7 +7,7 @@
 #include <list>
 #include <string>
 #include <map>
-#include<vector>
+#include <vector>
 #include <sstream>
 
 extern "C" {
@@ -17,6 +17,7 @@ extern "C" {
 }
 #include "LuaBridge.h"
 #include "LuaScript.h"
+#include "LinearAlgebra.h"
 
 template<typename T1, typename T2> class AtlasWorld;
 template<typename T1, typename T2> class AtlasNode;
@@ -66,23 +67,23 @@ private:
 
 public:
 	//constructor and destructor
-	AtlasWorld();
-	AtlasWorld(std::string worldname);
-	~AtlasWorld();
+	inline AtlasWorld();
+	inline AtlasWorld(std::string worldname);
+	inline ~AtlasWorld();
 
 	//Advances the whole world with numsteps ticks
-	void Tick(int numsteps);
+	inline void Tick(int numsteps);
 
 	//Saves world map to file
-	void SaveMap(std::string worldname);
+	inline void SaveMap(std::string worldname);
 
 	//Add a node to the world
-	void AddNode(AtlasNode<T1, T2>* Node);
+	inline void AddNode(AtlasNode<T1, T2>* Node);
 
 	//Define a new route in the world, if old number is used than route is overwritten
 	//route is a list of stringarrays of nodes starting with first node and than working towards end
 	//array is: [0] => ID [1]=> cost in reference to previous entry
-	void AddRoute(int id, std::vector<std::vector<std::string>> route);
+	inline void AddRoute(int id, std::vector<std::vector<std::string>> route);
 
 };
 
@@ -98,7 +99,7 @@ protected:
 	//list of agents who are travelling from this node to parent(s)
 	std::list<AtlasAgent<T2>*> _Agents;
 	//position on screen/map
-	float _p[2];
+	int _p[2];
 	//the payload of this node
 	T1* _Payload = nullptr;
 
@@ -111,27 +112,27 @@ private:
 
 public:
 	//constructor and deconstructor
-	AtlasNode(std::string ID, const float position[2]);
-	AtlasNode(luabridge::LuaRef* luasave);
-	~AtlasNode();
+	inline AtlasNode(std::string ID, const int position[2]);
+	inline AtlasNode(luabridge::LuaRef* luasave);
+	inline ~AtlasNode();
 
 	//returns onw ID
-	std::string ID();
+	inline std::string ID();
 
 	//advances the simulation of this node with one time tick
-	void Tick(AtlasWorld<T1, T2>* ThisWorld);
+	inline void Tick(AtlasWorld<T1, T2>* ThisWorld);
 	
 	//saves the node to lua format
-	luabridge::LuaRef Save(lua_State* L);
+	inline luabridge::LuaRef Save(lua_State* L);
 
 	//attaches agent to this node
-	void AttachAgent(AtlasAgent<T2>* agent);
+	inline void AttachAgent(AtlasAgent<T2>* agent);
 
 	//returns the payloadid
-	std::string GetPayloadID();
+	inline std::string GetPayloadID();
 
 	//adds payload data
-	void AddPayload(T1* p);
+	inline void AddPayload(T1* p);
 
 };
 
@@ -151,55 +152,53 @@ private:
 	std::string _PayloadID;
 	//if this is true than this timetick has already been processed this tick and should be ignored for rest of tick
 	bool _processed = false;
-	//position on screen/map
-	float _p[2];
 	//angle of the agent on the screen/map i9n degrees
 	float _angle;
 
 
 public:
-	AtlasAgent(std::string ID, int RouteNumber, std::string Destination, const float position[2]);
-	AtlasAgent(luabridge::LuaRef* luasave);
-	~AtlasAgent();
+	inline AtlasAgent(std::string ID, int RouteNumber, std::string Destination);
+	inline AtlasAgent(luabridge::LuaRef* luasave);
+	inline ~AtlasAgent();
 
 	//returns onw ID
-	std::string ID();
+	inline std::string ID();
 
 	//advances simulation with one timetick
-	void Tick(const float source[2], const float destination[2], const int TickDistance);
+	inline void Tick(const int source[2], const int destination[2], const int TickDistance);
 
 	//saves the node to lua format
-	luabridge::LuaRef Save(lua_State* L);
+	inline luabridge::LuaRef Save(lua_State* L);
 
 	//returns the payloadid
-	std::string GetPayloadID();
+	inline std::string GetPayloadID();
 
 	//adds payload data
-	void AddPayload(T* p);
+	inline void AddPayload(T* p);
 
 	//returns the destination
-	std::string Destination();
+	inline std::string Destination();
 
 	//resets the traveltime for when a node in route has been reached
-	void ReachedNode();
+	inline void ReachedNode();
 
 	//returns the route number
-	int RouteNumber();
+	inline int RouteNumber();
 
 	//returns time travelled
-	int TimeTravelled();
+	inline int TimeTravelled();
 
 	//called when arrived at destination
-	int DestinationArrived();
+	inline int DestinationArrived();
 
 	//Set new route number
-	void SetRoute(int newroute);
+	inline void SetRoute(int newroute);
 
 	//sets the processed to false
-	void ResetProcessed();
+	inline void ResetProcessed();
 
 	//returns the proccessed state
-	bool IsProcessed();
+	inline bool IsProcessed();
 };
 
 //Error class that is used to throw and display errors
@@ -207,11 +206,11 @@ class AtlasError :
 	public std::runtime_error
 {
 public:
-	AtlasError(int type, std::string c_message);
-	~AtlasError();
+	inline AtlasError(int type, std::string c_message);
+	inline ~AtlasError();
 
 	//displays the error message
-	std::string message();
+	inline std::string ErrorMessage();
 
 private:
 	//error type
@@ -320,7 +319,7 @@ template<typename T1, typename T2> AtlasWorld<T1, T2>::AtlasWorld(std::string wo
 
 template<typename T1, typename T2> AtlasWorld<T1, T2>::~AtlasWorld()
 {
-	for (std::map<std::string, AtlasNode<T1, T2>*>::iterator it = _Nodes.begin(); it != _Nodes.end(); it++)
+	for (typename std::map<std::string, AtlasNode<T1, T2>*>::iterator it = _Nodes.begin(); it != _Nodes.end(); it++)
 	{
 		delete it->second;
 	}
@@ -331,7 +330,7 @@ template<typename T1, typename T2> void AtlasWorld<T1, T2>::Tick(int numsteps)
 	for (int i = 0; i < numsteps; i++)
 	{
 		//reset all processsed flags
-		for (std::map<std::string, AtlasNode<T1, T2>*>::iterator it = _Nodes.begin(); it != _Nodes.end(); it++)
+		for (typename std::map<std::string, AtlasNode<T1, T2>*>::iterator it = _Nodes.begin(); it != _Nodes.end(); it++)
 		{
 			for (auto it2 = it->second->_Agents.begin(); it2 != it->second->_Agents.end(); it2++)
 			{
@@ -342,7 +341,7 @@ template<typename T1, typename T2> void AtlasWorld<T1, T2>::Tick(int numsteps)
 		_Time++;
 		std::cout << "Tick: " << _Time << std::endl;
 		//iterate through all nodes and invoke the tick on them
-		for (std::map<std::string, AtlasNode<T1, T2>*>::iterator it = _Nodes.begin(); it != _Nodes.end(); it++)
+		for (typename std::map<std::string, AtlasNode<T1, T2>*>::iterator it = _Nodes.begin(); it != _Nodes.end(); it++)
 		{
 			it->second->Tick(this);
 		}
@@ -361,7 +360,7 @@ template<typename T1, typename T2> void AtlasWorld<T1, T2>::SaveMap(std::string 
 
 	luabridge::LuaRef Nodes = luabridge::newTable(L);
 	int i = 1;
-	for (std::map<std::string, AtlasNode<T1, T2>*>::iterator it = _Nodes.begin(); it != _Nodes.end(); it++)
+	for (typename std::map<std::string, AtlasNode<T1, T2>*>::iterator it = _Nodes.begin(); it != _Nodes.end(); it++)
 	{
 		luabridge::LuaRef nodeLuaObject = it->second->Save(L);
 
@@ -374,14 +373,14 @@ template<typename T1, typename T2> void AtlasWorld<T1, T2>::SaveMap(std::string 
 
 	luabridge::LuaRef Routes = luabridge::newTable(L);
 	i = 1;
-	for (std::map<int, std::map<std::string, ParentInfo>>::iterator it = _Routes.begin(); it != _Routes.end(); it++)
+	for (typename std::map<int, std::map<std::string, ParentInfo>>::iterator it = _Routes.begin(); it != _Routes.end(); it++)
 	{
 		luabridge::LuaRef Route = luabridge::newTable(L);
 		Route["number"] = it->first;
 
 		luabridge::LuaRef members = luabridge::newTable(L);
 		int j = 1;
-		for (std::map<std::string, ParentInfo>::iterator it2 = it->second.begin(); it2 != it->second.end(); it2++)
+		for (typename std::map<std::string, ParentInfo>::iterator it2 = it->second.begin(); it2 != it->second.end(); it2++)
 		{
 			luabridge::LuaRef member = luabridge::newTable(L);
 			member["ID"] = it2->first;
@@ -417,7 +416,7 @@ template<typename T1, typename T2> void AtlasWorld<T1, T2>::AddRoute(int id, std
 	std::map<std::string, ParentInfo>* Route = new std::map<std::string, ParentInfo>();
 
 	std::vector<std::string> previousnode = { "", "" };
-	for (std::vector<std::vector<std::string>>::iterator it = route.begin(); it != route.end(); it++)
+	for (typename std::vector<std::vector<std::string>>::iterator it = route.begin(); it != route.end(); it++)
 	{
 		if (previousnode[0] == "")
 		{
@@ -440,7 +439,7 @@ template<typename T1, typename T2> void AtlasWorld<T1, T2>::AddRoute(int id, std
 
 // AtlasNodeclass functions:
 
-template<typename T1, typename T2> AtlasNode<T1, T2>::AtlasNode(std::string ID, const float position[2])
+template<typename T1, typename T2> AtlasNode<T1, T2>::AtlasNode(std::string ID, const int position[2])
 {
 	//create fresh new node
 	_ID = ID;
@@ -468,12 +467,12 @@ template<typename T1, typename T2> AtlasNode<T1, T2>::AtlasNode(luabridge::LuaRe
 	_PayloadID = data["PayloadID"].cast<std::string>();
 	luabridge::LuaRef pos = data["Position"];
 	_p[0] = pos[1].cast<float>();
-	_p[1] = pos[2].cast<float();
+	_p[1] = pos[2].cast<float>();
 }
 
 template<typename T1, typename T2> AtlasNode<T1, T2>::~AtlasNode()
 {
-	for (std::list<AtlasAgent<T2>*>::iterator it = _Agents.begin(); it != _Agents.end(); it++)
+	for (typename std::list<AtlasAgent<T2>*>::iterator it = _Agents.begin(); it != _Agents.end(); it++)
 	{
 		delete (*it);
 	}
@@ -484,7 +483,7 @@ template<typename T1, typename T2> void AtlasNode<T1, T2>::Tick(AtlasWorld<T1, T
 	//call the tick hook in the payload
 	_Payload->AtlasTick(_p);
 	//iterate through the agents list
-	std::list<AtlasAgent<T2>*>::iterator it = _Agents.begin();
+	typename std::list<AtlasAgent<T2>*>::iterator it = _Agents.begin();
 	while (it != _Agents.end())
 	{
 		//check if this agent has already been processed this tick
@@ -578,7 +577,7 @@ template<typename T1, typename T2> luabridge::LuaRef AtlasNode<T1, T2>::Save(lua
 	luabridge::LuaRef Agents = t["Agents"];
 	int i = 1;
 	//iterate through the agents and call the save on them to produce a lua object which is saved in the agent list
-	for (std::list<AtlasAgent<T2>*>::iterator it = _Agents.begin(); it != _Agents.end(); it++)
+	for (typename std::list<AtlasAgent<T2>*>::iterator it = _Agents.begin(); it != _Agents.end(); it++)
 	{
 		Agents[i] = (*it)->Save(L);
 		i++;
@@ -603,7 +602,7 @@ template<typename T1, typename T2> luabridge::LuaRef AtlasNode<T1, T2>::Save(lua
 template<typename T1, typename T2> void AtlasNode<T1, T2>::AttachAgent(AtlasAgent<T2>* agent)
 {
 	//check if agent is unique
-	for (std::list<AtlasAgent<T2>*>::iterator it = _Agents.begin(); it != _Agents.end(); it++)
+	for (typename std::list<AtlasAgent<T2>*>::iterator it = _Agents.begin(); it != _Agents.end(); it++)
 	{
 		if ((*it)->ID() == agent->ID())
 		{
@@ -635,7 +634,7 @@ template<typename T1, typename T2> std::string AtlasNode<T1, T2>::ID()
 
 // AtlasAgentclass functions:
 
-template<typename T> AtlasAgent<T>::AtlasAgent(std::string ID, int RouteNumber, std::string Destination, const float position[2])
+template<typename T> AtlasAgent<T>::AtlasAgent(std::string ID, int RouteNumber, std::string Destination)
 {
 	//create new fresh agent
 	_ID = ID;
@@ -644,7 +643,6 @@ template<typename T> AtlasAgent<T>::AtlasAgent(std::string ID, int RouteNumber, 
 	_TotalTime = 0;
 	_TravelTime = 0;
 	_Payload = nullptr;
-	copy_array(position, _p);
 	_angle = 0;
 }
 
@@ -659,9 +657,6 @@ template<typename T> AtlasAgent<T>::AtlasAgent(luabridge::LuaRef* luasave)
 	_TravelTime = data["TravelTime"].cast<int>();
 	_Destination = data["Destination"].cast<std::string>();
 	_PayloadID = data["PayloadID"].cast<std::string>();
-	luabridge::LuaRef pos = data["Position"];
-	_p[0] = pos[1].cast<float>();
-	_p[1] = pos[2].cast<float();
 	_angle = data["Angle"].cast<float>();
 }
 
@@ -670,7 +665,7 @@ template<typename T> AtlasAgent<T>::~AtlasAgent()
 
 }
 
-template<typename T> void AtlasAgent<T>::Tick(const float source[2], const float destination[2], const int TickDistance)
+template<typename T> void AtlasAgent<T>::Tick(const int source[2], const int destination[2], const int TickDistance)
 {
 	//increment the time and call the custom function on the tick
 	_TotalTime++;
@@ -684,10 +679,10 @@ template<typename T> void AtlasAgent<T>::Tick(const float source[2], const float
 	//float distancePerTick = distance / TickDistance;
 	float distanceX = movementVector[0] / TickDistance;
 	float distanceY = movementVector[1] / TickDistance;
-	float p[2];
+	int p[2];
 
-	p[0] = source[0] + distanceX * _TravelTime;
-	p[1] = source[1] + distanceY * _TravelTime;
+	p[0] = round(source[0] + distanceX * _TravelTime);
+	p[1] = round(source[1] + distanceY * _TravelTime);
 
 	_Payload->AtlasTick(angle, p);
 	_processed = true;
@@ -712,10 +707,6 @@ template<typename T> luabridge::LuaRef AtlasAgent<T>::Save(lua_State* L)
 	}
 	t["RouteNumber"] = _RouteNumber;
 
-	t["Position"] = luabridge::newTable(L);
-	luabridge::LuaRef pos = t["Position"];
-	pos[1] = _p[0];
-	pos[2] = _p[1];
 	t["Angle"] = _angle;
 	return t;
 }
@@ -798,7 +789,7 @@ AtlasError::~AtlasError()
 
 }
 
-std::string AtlasError::message()
+std::string AtlasError::ErrorMessage()
 {
 	std::stringstream ss;
 	switch (_type)

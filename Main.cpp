@@ -1,5 +1,5 @@
 //main cpp file
-//copyright Frank Boerman 2014
+//copyright WillieWonka 2014
 
 #include "Main.h"
 
@@ -14,7 +14,7 @@ Node::~Node()
 
 }
 
-void Node::AtlasTick(const float newPosition[2])
+void Node::AtlasTick(const int newPosition[2])
 {
 	_image->ChangePosition(newPosition);
 }
@@ -41,7 +41,7 @@ Agent::~Agent()
 
 }
 
-void Agent::AtlasTick(const float newAngle, const float newPosition[2])
+void Agent::AtlasTick(const float newAngle, const int newPosition[2])
 {
 	_image->ChangeAngle(newAngle);
 	_image->ChangePosition(newPosition);
@@ -76,7 +76,7 @@ void keypressed(unsigned char key, int x, int y)
 		}
 		catch (AtlasError &e)
 		{
-			std::cout << e.message() << std::endl;
+			std::cout << e.ErrorMessage() << std::endl;
 		}
 		glutPostRedisplay();
 	}
@@ -136,11 +136,12 @@ void display()
 int main(int argc, char* argv[])
 {
 	MyWorld = new AtlasWorld<Node,Agent>();
-	
+	AtlasWorld<Municipal, TransportAgent>* MyWorld2 = new AtlasWorld<Municipal, TransportAgent>();
+
 	float color[3] = {0, 0, 0};
-	float p1[2] = { 100, 100 };
-	float p2[2] = { 200, 200 };
-	float p3[2] = { 200, 100 };
+	int p1[2] = { 100, 100 };
+	int p2[2] = { 200, 200 };
+	int p3[2] = { 200, 100 };
 
 	Node* N1 = new Node("Node1", new circle(&DrawList, p1, color, 15, 1000, false));
 	Node* N2 = new Node("Node2", new circle(&DrawList, p2, color, 15, 1000, false));
@@ -161,8 +162,8 @@ int main(int argc, char* argv[])
 	Agent* A1 = new Agent("Agent1", new arrow(&DrawList,p1,color,10,false,0));
 	Agent* A2 = new Agent("Agent2", new arrow(&DrawList, p1, color, 10, false, 0));
 
-	AtlasAgent<Agent>* AA1 = new AtlasAgent<Agent>("AAgent1",1,"ANode3",p1);
-	AtlasAgent<Agent>* AA2 = new AtlasAgent<Agent>("AAgent2", 2, "ANode2",p1);
+	AtlasAgent<Agent>* AA1 = new AtlasAgent<Agent>("AAgent1",1,"ANode3");
+	AtlasAgent<Agent>* AA2 = new AtlasAgent<Agent>("AAgent2", 2, "ANode2");
 
 	AA1->AddPayload(A1);
 	AA2->AddPayload(A2);
@@ -211,25 +212,9 @@ int main(int argc, char* argv[])
 	MyWorld->AddRoute(2, r2);
 	MyWorld->AddRoute(3, r3);
 	
-	//float p[2] = { 500, 250 };
-
-	//new circle(&DrawList, p, color, 100, 1000000, false);
-	//new arrow(&DrawList, p, color, 10, false, ToRadians(-90));
 	glutInit(&argc, argv);
 	init();
 	glutMainLoop();
-
-	//MyWorld->Tick(5);
-	//MyWorld->SaveMap("Dump1.lua");
-	//MyWorld->Tick(5);
-	//MyWorld->SaveMap("Dump2.lua");
-	//MyWorld->Tick(5);
-	//MyWorld->SaveMap("Dump3.lua");
-	//MyWorld->Tick(5);
-	//MyWorld->SaveMap("Dump4.lua");
-
-	//delete MyWorld;
-	//AtlasWorld<Node, Agent>* MyWorld = new AtlasWorld<Node,Agent>("TestWorld1.lua");
 
 	return 0;
 }

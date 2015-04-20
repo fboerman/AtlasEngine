@@ -1,5 +1,5 @@
 //main header file
-//copyright Frank Boerman 2014
+//copyright WillieWonka 2014
 
 #ifndef MAIN_H
 #define MAIN_H
@@ -12,6 +12,7 @@
 #include <ctime>
 #include "AtlasEngine.h"
 #include "DrawTools.h"
+#include "DataStructures.h"
 
 class Node;
 class Agent;
@@ -33,7 +34,7 @@ public:
 	Node(std::string id, circle* image);
 	~Node();
 
-	void AtlasTick(const float newPosition[2]);
+	void AtlasTick(const int newPosition[2]);
 
 	void AtlasArrivedAgent(std::string agentID);
 
@@ -52,7 +53,7 @@ public:
 	Agent(std::string id, arrow* image);
 	~Agent();
 
-	void AtlasTick(const float newAngle, const float newPosition[2]);
+	void AtlasTick(const float newAngle, const int newPosition[2]);
 	
 	int AtlasArrived();
 
